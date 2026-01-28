@@ -101,7 +101,8 @@ export class InsiderScraper {
                     })
                     .filter(Boolean)
                     // Deduplicate by URL within the page scrape
-                    .reduce((acc: any[], current) => {
+                    .reduce((acc: any[], current: any) => {
+                        if (!current) return acc;
                         const x = acc.find(item => item.registration_url === current.registration_url);
                         if (!x) {
                             return acc.concat([current]);
