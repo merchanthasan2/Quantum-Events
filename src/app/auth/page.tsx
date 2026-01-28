@@ -39,7 +39,13 @@ export default function AuthPage() {
                 router.push('/');
             }
         } catch (error: any) {
-            alert(error.message);
+            console.error('Auth Error:', error);
+            if (error.message?.includes('User already registered') || error.message?.includes('already registered')) {
+                alert('User already exists! Please just "Sign In" instead.');
+                setIsSignUp(false);
+            } else {
+                alert(error.message || 'Authentication failed. Please try again.');
+            }
         } finally {
             setLoading(false);
         }
