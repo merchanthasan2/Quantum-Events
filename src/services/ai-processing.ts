@@ -12,6 +12,27 @@ export class AIProcessingService {
             return { isValid: false, reason: 'Contains suspicious/dummy keywords' };
         }
 
+        // 1b. Strict Re-Release Filter for Movies
+        // If it's a movie, check for re-release markers
+        if (event.category === 'Movies' || content.includes('movie') || content.includes('cinema')) {
+            const reReleaseKeywords = [
+                're-release', 'rerelease',
+                'anniversary screening',
+                'special screening',
+                'classic',
+                'old movie',
+                'reliving the magic',
+                'back in cinemas'
+            ];
+
+            if (reReleaseKeywords.some(kw => content.includes(kw))) {
+                // Double check: acceptable if it's a "Premiere" or "Festival"
+                if (!content.includes('premiere') && !content.includes('festival')) {
+                    return { isValid: false, reason: 'Detected as a re-release or old movie screening' };
+                }
+            }
+        }
+
         // 2. Minimum length requirements
         if (event.title.length < 5) {
             return { isValid: false, reason: 'Title too short' };

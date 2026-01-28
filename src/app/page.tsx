@@ -106,9 +106,10 @@ async function getInitialData(filters: { city?: string; category?: string; q?: s
     query = query.gte('event_date', format(start, 'yyyy-MM-dd'))
       .lte('event_date', format(end, 'yyyy-MM-dd'));
   } else {
-    // Default: upcoming events
-    // query = query.gte('event_date', format(startOfDay(now), 'yyyy-MM-dd'));
-    // Removed default restriction to allow seeing featured events or recently added
+    // Default: upcoming events ONLY
+    // We strictly filter out events before today to prevent showing yesterday's events
+    const todayStr = format(now, 'yyyy-MM-dd');
+    query = query.gte('event_date', todayStr);
   }
 
   // Price Filter logic
