@@ -72,6 +72,7 @@ export function EventCard({ event, onClick }: EventCardProps) {
     };
 
     return (
+    return (
         <a
             href={`/events/${event.id}`}
             onClick={(e) => {
@@ -80,9 +81,10 @@ export function EventCard({ event, onClick }: EventCardProps) {
                     onClick();
                 }
             }}
-            className="block bg-white rounded-2xl shadow-md hover:shadow-2xl transition-all duration-500 cursor-pointer overflow-hidden group hover:-translate-y-2 border border-gray-100"
+            className="group flex flex-col sm:flex-row bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden border border-gray-100 hover:-translate-y-1 h-full"
         >
-            <div className="relative aspect-video overflow-hidden">
+            {/* Image Section - Full width mobile, fixed width desktop */}
+            <div className="relative w-full sm:w-48 lg:w-56 xl:w-64 shrink-0 aspect-video sm:aspect-auto sm:h-full overflow-hidden">
                 {(() => {
                     const isPlaceholder = ImageProcessor.isPlaceholder(event.image_url);
                     const displayImage = isPlaceholder
@@ -95,41 +97,39 @@ export function EventCard({ event, onClick }: EventCardProps) {
                                 src={displayImage}
                                 alt={event.title}
                                 fill
-                                className="object-cover group-hover:scale-110 transition-transform duration-700 object-top"
-                                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                                className="object-cover group-hover:scale-110 transition-transform duration-700"
+                                sizes="(max-width: 640px) 100vw, 300px"
                             />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent opacity-30 group-hover:opacity-60 transition-opacity duration-300"></div>
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60 sm:opacity-0 sm:group-hover:opacity-30 transition-opacity"></div>
                         </>
                     ) : (
                         <div className="w-full h-full bg-gradient-to-br from-blue-100 via-cyan-50 to-emerald-100 flex items-center justify-center">
-                            <Calendar className="w-16 h-16 text-blue-400 animate-pulse" />
+                            <Calendar className="w-12 h-12 text-blue-400 animate-pulse" />
                         </div>
                     );
                 })()}
 
                 <div className="absolute top-3 left-3 flex flex-col gap-2 z-10">
                     {isJustAdded() && (
-                        <div className="bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1 animate-pulse">
-                            <span className="w-2 h-2 bg-white rounded-full animate-ping"></span>
-                            Just Added
+                        <div className="bg-gradient-to-r from-green-500 to-emerald-500 text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-lg flex items-center gap-1 animate-pulse">
+                            <span className="w-1.5 h-1.5 bg-white rounded-full animate-ping"></span>
+                            New
                         </div>
                     )}
                     {event.is_featured && (
-                        <div className="bg-gradient-to-r from-yellow-400 to-orange-400 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg">
+                        <div className="bg-gradient-to-r from-yellow-400 to-orange-400 text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-lg">
                             ⭐ Featured
                         </div>
                     )}
                 </div>
 
-                <div className="absolute bottom-3 right-3 flex flex-col gap-2 z-10">
+                <div className="absolute top-3 right-3 sm:hidden">
                     <button
                         onClick={async (e) => {
+                            e.preventDefault();
                             e.stopPropagation();
                             const { data: { user } } = await supabase.auth.getUser();
-                            if (!user) {
-                                alert('Please sign in to save favorites');
-                                return;
-                            }
+                            if (!user) return alert('Please sign in to save favorites');
 
                             if (isFavorited) {
                                 await supabase.from('favorites').delete().eq('user_id', user.id).eq('event_id', event.id);
@@ -139,90 +139,78 @@ export function EventCard({ event, onClick }: EventCardProps) {
                                 setIsFavorited(true);
                             }
                         }}
-                        className={`p-2 rounded-full backdrop-blur-md border border-white/30 shadow-lg transition-all duration-300 ${isFavorited ? 'bg-red-500 text-white' : 'bg-black/20 text-white hover:bg-red-500'}`}
+                        className={`p-1.5 rounded-full backdrop-blur-md border border-white/30 shadow-sm ${isFavorited ? 'bg-red-500 text-white' : 'bg-black/20 text-white'}`}
                     >
-                        <Heart className={`w-4 h-4 ${isFavorited ? 'fill-current' : ''}`} />
+                        <Heart className={`w-3.5 h-3.5 ${isFavorited ? 'fill-current' : ''}`} />
                     </button>
-                    {event.category && (
-                        <div
-                            className="text-white text-[10px] font-bold px-3 py-1.5 rounded-full backdrop-blur-md border border-white/30 shadow-lg text-center"
-                            style={{ backgroundColor: `${event.category.color}DD` }}
-                        >
-                            {event.category.name}
-                        </div>
-                    )}
                 </div>
             </div>
 
-            <div className="p-5">
-                <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2 group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:from-blue-600 group-hover:to-cyan-600 group-hover:bg-clip-text transition-all duration-300">
+            {/* Content Section */}
+            <div className="flex flex-col p-4 grow relative">
+                <div className="hidden sm:block absolute top-4 right-4 z-10">
+                    <button
+                        onClick={async (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            const { data: { user } } = await supabase.auth.getUser();
+                            if (!user) return alert('Please sign in to save favorites');
+
+                            if (isFavorited) {
+                                await supabase.from('favorites').delete().eq('user_id', user.id).eq('event_id', event.id);
+                                setIsFavorited(false);
+                            } else {
+                                await supabase.from('favorites').insert({ user_id: user.id, event_id: event.id });
+                                setIsFavorited(true);
+                            }
+                        }}
+                        className={`p-2 rounded-full hover:bg-gray-100 transition-colors ${isFavorited ? 'text-red-500 fill-red-500' : 'text-gray-300'}`}
+                    >
+                        <Heart className={`w-5 h-5 ${isFavorited ? 'fill-current' : ''}`} />
+                    </button>
+                </div>
+
+                <div className="mb-1">
+                    {event.category && (
+                        <span
+                            className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-md border"
+                            style={{
+                                color: event.category.color,
+                                backgroundColor: `${event.category.color}10`,
+                                borderColor: `${event.category.color}30`
+                            }}
+                        >
+                            {event.category.name}
+                        </span>
+                    )}
+                </div>
+
+                <h3 className="text-lg font-bold text-gray-900 mb-2 leading-tight pr-8 group-hover:text-blue-600 transition-colors">
                     {event.title}
                 </h3>
 
-                <p className="text-sm text-gray-600 mb-4 line-clamp-2 leading-relaxed h-10">
-                    {event.short_description || event.description}
-                </p>
-
-                <div className="space-y-2.5">
-                    <div className="flex items-center text-sm text-gray-700 bg-gray-50 px-3 py-2 rounded-lg">
-                        <Calendar className="w-4 h-4 mr-2 text-blue-500" />
-                        <span className="font-medium">{formatDate(event.event_date)}</span>
-                        {event.event_time && (
-                            <span className="ml-1 text-gray-600">at {event.event_time.slice(0, 5)}</span>
-                        )}
+                <div className="space-y-2 mb-4">
+                    <div className="flex items-center text-sm text-gray-600">
+                        <Calendar className="w-4 h-4 mr-2 text-blue-500 shrink-0" />
+                        <span className="font-medium truncate">{formatDate(event.event_date)}</span>
                     </div>
-
-                    {event.venue && (
-                        <div className="flex items-center text-sm text-gray-700 bg-gray-50 px-3 py-2 rounded-lg">
-                            <MapPin className="w-4 h-4 mr-2 text-emerald-500 flex-shrink-0" />
-                            <span className="truncate font-medium">
-                                {event.venue}
-                                {event.city && `, ${event.city.name}`}
-                            </span>
-                        </div>
-                    )}
-
-                    <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-                        <div className="flex items-center text-base font-bold text-gray-900 bg-gradient-to-r from-yellow-50 to-orange-50 px-3 py-2 rounded-lg">
-                            <IndianRupee className="w-4 h-4 mr-1 text-orange-500" />
-                            {formatPrice()}
-                        </div>
-
-                        {event.registration_url && (() => {
-                            const validUrl = validateAndFixUrl(event.registration_url);
-                            return validUrl ? (
-                                <button
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        AnalyticsService.trackEvent('registration_click', {
-                                            event_id: event.id,
-                                            event_title: event.title,
-                                            source: event.source
-                                        });
-                                        window.open(validUrl, '_blank', 'noopener,noreferrer');
-                                    }}
-                                    className="flex items-center gap-1 text-sm bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-4 py-2 rounded-lg font-semibold hover:scale-105 hover:shadow-lg transition-all duration-300"
-                                >
-                                    {getCTA()}
-                                    <ExternalLink className="w-3 h-3" />
-                                </button>
-                            ) : null;
-                        })()}
+                    <div className="flex items-center text-sm text-gray-600">
+                        <MapPin className="w-4 h-4 mr-2 text-emerald-500 shrink-0" />
+                        <span className="truncate">{event.venue}</span>
                     </div>
                 </div>
 
-                {event.tags && event.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mt-4">
-                        {event.tags.slice(0, 3).map((tag, index) => (
-                            <span
-                                key={index}
-                                className="text-xs bg-gradient-to-r from-gray-100 to-gray-50 text-gray-700 px-3 py-1.5 rounded-full font-medium border border-gray-200"
-                            >
-                                {tag}
-                            </span>
-                        ))}
-                    </div>
-                )}
+                <div className="mt-auto pt-3 border-t border-gray-100 flex items-center justify-between">
+                    <span className="font-black text-lg text-gray-900">
+                        {event.is_free ? 'Free' : (
+                            event.ticket_price_min ? `₹${event.ticket_price_min}` : 'Register'
+                        )}
+                    </span>
+
+                    <span className="text-sm font-bold text-blue-600 flex items-center group-hover:underline">
+                        {getCTA()} <ExternalLink className="w-3 h-3 ml-1" />
+                    </span>
+                </div>
             </div>
         </a>
     );
