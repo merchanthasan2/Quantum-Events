@@ -83,7 +83,23 @@ export class DataSyncService {
         }
 
         // 2. Map to City ID
-        const city = cities.find(c => c.slug === scraped.city.toLowerCase() || c.name.toLowerCase() === scraped.city.toLowerCase());
+        // Default to target city, but double check address for drift
+        let city = cities.find(c => c.slug === scraped.city.toLowerCase() || c.name.toLowerCase() === scraped.city.toLowerCase());
+
+        // Cross-validation: Check if venue/address explicitly mentions another major city
+        // (Solves "Kolkata events appearing in Mumbai" issue)
+        const addressContent = `${scraped.venue} ${scraped.address}`.toLowerCase();
+        const otherMajorCities = cities.filter(c => c.id !== city?.id);
+
+        for (const otherCity of otherMajorCities) {
+            // Check if address *ends with* city name or contains "City, State" pattern
+            if (addressContent.includes(otherCity.name.toLowerCase())) {
+                console.log(`  ⚠️ Re-assigning ${scraped.title} from ${city?.name} to ${otherCity.name} based on address.`);
+                city = otherCity;
+                break;
+            }
+        }
+
         if (!city) return false;
 
         // 3. Normalize and Map to Category ID

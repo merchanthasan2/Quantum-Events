@@ -153,7 +153,9 @@ export function EventCard({ event, onClick }: EventCardProps) {
                     </div>
                     <div className="flex items-center text-sm font-medium text-gray-500">
                         <MapPin className="w-4 h-4 mr-2 text-gray-400 shrink-0" />
-                        <span className="truncate">{event.venue}</span>
+                        <span className="truncate">
+                            {event.city?.name ? `${event.venue}, ${event.city.name}` : event.venue}
+                        </span>
                     </div>
                 </div>
 
