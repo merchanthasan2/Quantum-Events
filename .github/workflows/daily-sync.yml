@@ -1,0 +1,18 @@
+name: Daily Event Data Sync
+
+on:
+  schedule:
+    # Runs at 00:00 UTC every day
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+
+jobs:
+  trigger_sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Vibe Data Sync
+        run: |
+          echo "Triggering Sync..."
+          curl -X GET ${{ secrets.DEPLOYED_URL }}/api/cron/sync \
+          -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+          --fail
