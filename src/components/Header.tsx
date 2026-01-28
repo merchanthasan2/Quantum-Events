@@ -179,7 +179,7 @@ export function Header({ cities, selectedCity }: HeaderProps) {
                                 <span className="font-medium">Favorites</span>
                             </Link>
 
-                            {(profile?.is_admin || user?.email === 'happy143@gmail.com') && (
+                            {(profile?.is_admin || user?.email === 'happy143@gmail.com' || user?.email === 'merchanthasan2@gmail.com') && (
                                 <Link
                                     href="/admin"
                                     onClick={() => setIsMenuOpen(false)}
