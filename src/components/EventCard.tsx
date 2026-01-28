@@ -224,6 +224,6 @@ export function EventCard({ event, onClick }: EventCardProps) {
                     </div>
                 )}
             </div>
-        </div>
+        </a>
     );
 }
