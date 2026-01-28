@@ -72,9 +72,15 @@ export function EventCard({ event, onClick }: EventCardProps) {
     };
 
     return (
-        <div
-            onClick={onClick}
-            className="bg-white rounded-2xl shadow-md hover:shadow-2xl transition-all duration-500 cursor-pointer overflow-hidden group hover:-translate-y-2 border border-gray-100"
+        <a
+            href={`/events/${event.id}`}
+            onClick={(e) => {
+                if (onClick) {
+                    e.preventDefault();
+                    onClick();
+                }
+            }}
+            className="block bg-white rounded-2xl shadow-md hover:shadow-2xl transition-all duration-500 cursor-pointer overflow-hidden group hover:-translate-y-2 border border-gray-100"
         >
             <div className="relative aspect-video overflow-hidden">
                 {(() => {
