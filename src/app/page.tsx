@@ -142,6 +142,15 @@ export default async function Home({
           </div>
 
           <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+            <a
+              href={`/${sp.city ? `?city=${sp.city}` : ''}`}
+              className={`whitespace-nowrap px-6 py-3 rounded-2xl border-2 font-black text-sm transition-all ${!sp.category
+                ? 'bg-gray-900 border-gray-900 text-white shadow-lg scale-105'
+                : 'bg-white border-gray-100 text-gray-500 hover:border-gray-900 hover:text-gray-900'
+                }`}
+            >
+              All Categories
+            </a>
             {categories.map((category) => (
               <a
                 key={category.id}
