@@ -69,29 +69,46 @@ async function getInitialData(filters: { city?: string; category?: string; q?: s
 
   // Date Filtering
   const now = new Date();
+
   if (timeFilter === 'today') {
-    query = query.gte('event_date', format(startOfDay(now), 'yyyy-MM-dd'))
-      .lte('event_date', format(endOfDay(now), 'yyyy-MM-dd'));
+    // Events active today (starts today OR starts before today and ends after today)
+    const todayStr = format(now, 'yyyy-MM-dd');
+    query = query.or(`event_date.eq.${todayStr},and(event_date.lte.${todayStr},end_date.gte.${todayStr})`);
   } else if (timeFilter === 'tomorrow') {
     const tomorrow = addDays(now, 1);
-    query = query.eq('event_date', format(tomorrow, 'yyyy-MM-dd'));
+    const tomStr = format(tomorrow, 'yyyy-MM-dd');
+    query = query.eq('event_date', tomStr);
   } else if (timeFilter === 'weekend') {
-    // Get next Friday, Saturday, Sunday
-    const today = new Date();
-    const dayOfWeek = today.getDay();
-    const distanceToFriday = (5 + 7 - dayOfWeek) % 7;
-    const nextFriday = addDays(today, distanceToFriday);
-    const nextSunday = addDays(nextFriday, 2);
+    // Logic: If today is Saturday/Sunday, show today + remaining weekend. 
+    // Else show next Friday-Sunday.
+    const day = now.getDay(); // 0 is Sunday, 6 is Saturday
+    let start, end;
 
-    query = query.gte('event_date', format(nextFriday, 'yyyy-MM-dd'))
-      .lte('event_date', format(nextSunday, 'yyyy-MM-dd'));
+    if (day === 0) { // Sunday, show today
+      start = now;
+      end = now;
+    } else if (day === 6) { // Saturday, show today + tomorrow
+      start = now;
+      end = addDays(now, 1);
+    } else {
+      // Next Friday
+      const dist = (5 + 7 - day) % 7;
+      start = addDays(now, dist);
+      end = addDays(start, 2); // Sunday
+    }
+
+    query = query.gte('event_date', format(start, 'yyyy-MM-dd'))
+      .lte('event_date', format(end, 'yyyy-MM-dd'));
   } else if (timeFilter === 'week') {
-    const startOfNextWeek = startOfWeek(addDays(now, 7), { weekStartsOn: 1 });
-    const endOfNextWeek = endOfWeek(addDays(now, 7), { weekStartsOn: 1 });
-    query = query.gte('event_date', format(startOfNextWeek, 'yyyy-MM-dd'))
-      .lte('event_date', format(endOfNextWeek, 'yyyy-MM-dd'));
+    // This week (Mon-Sun)
+    const start = startOfWeek(now, { weekStartsOn: 1 });
+    const end = endOfWeek(now, { weekStartsOn: 1 });
+    query = query.gte('event_date', format(start, 'yyyy-MM-dd'))
+      .lte('event_date', format(end, 'yyyy-MM-dd'));
   } else {
-    query = query.gte('event_date', format(startOfDay(now), 'yyyy-MM-dd'));
+    // Default: upcoming events
+    // query = query.gte('event_date', format(startOfDay(now), 'yyyy-MM-dd'));
+    // Removed default restriction to allow seeing featured events or recently added
   }
 
   // Price Filter logic
