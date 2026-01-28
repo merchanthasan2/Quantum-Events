@@ -11,8 +11,3 @@
 
 [functions]
   external_node_modules = ["puppeteer-core", "@sparticuz/chromium"]
-
-[[redirects]]
-  from = "/*"
-  to = "/.next/server/pages/:splat"
-  status = 200
