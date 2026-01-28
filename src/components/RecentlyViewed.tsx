@@ -36,11 +36,9 @@ export function RecentlyViewed() {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8 opacity-80 hover:opacity-100 transition-opacity">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
                 {events.map((event) => (
-                    <div key={event.id} className="scale-95 hover:scale-100 transition-transform h-full">
-                        <EventCard event={event} />
-                    </div>
+                    <EventCard key={event.id} event={event} />
                 ))}
             </div>
         </div>

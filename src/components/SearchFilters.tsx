@@ -40,41 +40,59 @@ export function SearchFilters({ categories }: SearchFiltersProps) {
     ];
 
     return (
-        <div className="max-w-4xl mx-auto -mt-6 px-4 relative z-20">
-            <div className="glass-effect p-3 rounded-[2rem] shadow-2xl flex flex-col md:flex-row gap-2 border border-blue-100">
-                <form onSubmit={handleSearch} className="flex-grow relative group">
-                    <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
+        <div className="max-w-4xl mx-auto -mt-10 px-4 relative z-20">
+            <div className="bg-white p-2 rounded-[2rem] shadow-xl shadow-blue-900/5 flex items-center border border-gray-100 mb-4">
+                <form onSubmit={handleSearch} className="flex-grow relative group flex items-center">
+                    <Search className="absolute left-6 w-6 h-6 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
                     <input
                         type="text"
-                        placeholder="Try 'Music in Pune this weekend'..."
-                        className="w-full pl-14 pr-24 py-5 rounded-[1.5rem] bg-gray-50 border-2 border-transparent focus:border-blue-500 focus:bg-white transition-all outline-none font-bold placeholder:text-gray-300"
+                        placeholder="Search events, categories, or venues..."
+                        className="w-full pl-16 pr-4 py-4 rounded-[1.5rem] bg-transparent border-none focus:ring-0 focus:outline-none text-lg font-bold text-gray-900 placeholder:text-gray-300"
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
                     />
-                    <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2 pointer-events-none">
-                        <span className="bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-600 text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded-md border border-blue-200/50 flex items-center gap-1 shadow-sm">
-                            <Sparkles className="w-3 h-3" />
-                            AI Powered
-                        </span>
-                    </div>
                 </form>
+                <button
+                    type="submit"
+                    onClick={handleSearch}
+                    className="m-2 px-8 py-4 rounded-[1.5rem] bg-gradient-to-r from-blue-600 to-cyan-600 hover:scale-[1.02] active:scale-95 text-white font-black text-base transition-all shadow-lg shadow-blue-200"
+                >
+                    Search
+                </button>
+            </div>
 
-                <div className="flex gap-2">
-                    <button
-                        onClick={() => setIsFilterModalOpen(true)}
-                        className="flex items-center justify-center gap-2 px-8 py-5 rounded-[1.5rem] bg-gray-50 hover:bg-white border-2 border-gray-100 hover:border-blue-500 text-gray-600 font-black text-sm transition-all"
-                    >
-                        <SlidersHorizontal className="w-5 h-5" />
-                        <span>Filters</span>
-                    </button>
-                    <button
-                        type="submit"
-                        onClick={handleSearch}
-                        className="px-10 py-5 rounded-[1.5rem] bg-gradient-to-r from-blue-600 to-cyan-600 hover:scale-[1.02] active:scale-95 text-white font-black text-sm transition-all shadow-xl shadow-blue-200"
-                    >
-                        Search
-                    </button>
+            <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="flex gap-2 bg-white/80 backdrop-blur-md p-1.5 rounded-2xl border border-gray-200/50 shadow-sm">
+                    {['Today', 'Tomorrow', 'Weekend'].map((date) => (
+                        <button
+                            key={date}
+                            onClick={() => {
+                                const params = new URLSearchParams(searchParams.toString());
+                                const value = date.toLowerCase();
+                                if (searchParams.get('date') === value) {
+                                    params.delete('date');
+                                } else {
+                                    params.set('date', value);
+                                }
+                                router.push(`/?${params.toString()}`);
+                            }}
+                            className={`px-5 py-2.5 rounded-xl font-bold text-sm transition-all ${searchParams.get('date') === date.toLowerCase()
+                                ? 'bg-blue-600 text-white shadow-md'
+                                : 'text-gray-600 hover:bg-gray-100'
+                                }`}
+                        >
+                            {date}
+                        </button>
+                    ))}
                 </div>
+
+                <button
+                    onClick={() => setIsFilterModalOpen(true)}
+                    className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-white text-gray-700 font-bold border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all shadow-sm"
+                >
+                    <SlidersHorizontal className="w-4 h-4" />
+                    <span>Advanced Filters</span>
+                </button>
             </div>
 
             <FilterModal

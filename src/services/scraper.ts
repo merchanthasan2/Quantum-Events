@@ -1,6 +1,8 @@
 import puppeteer from 'puppeteer';
 import { BookMyShowScraper } from './bms-scraper';
 import { InsiderScraper } from './insider-scraper';
+import { EventbriteScraper } from './eventbrite-scraper';
+import { TenTimesScraper } from './tentimes-scraper';
 
 export interface ScrapedEvent {
     title: string;
@@ -24,6 +26,8 @@ export interface ScrapedEvent {
 export class ScraperService {
     private bmsScraper = new BookMyShowScraper();
     private insiderScraper = new InsiderScraper();
+    private eventbriteScraper = new EventbriteScraper();
+    private tenTimesScraper = new TenTimesScraper();
 
     private async getBrowser() {
         return puppeteer.launch({
@@ -59,6 +63,24 @@ export class ScraperService {
         }
     }
 
+    async scrapeEventbrite(city: string, existingBrowser?: any): Promise<ScrapedEvent[]> {
+        const browser = existingBrowser || await this.getBrowser();
+        try {
+            return await this.eventbriteScraper.scrape(city, browser);
+        } finally {
+            if (!existingBrowser) await browser.close();
+        }
+    }
+
+    async scrapeTenTimes(city: string, existingBrowser?: any): Promise<ScrapedEvent[]> {
+        const browser = existingBrowser || await this.getBrowser();
+        try {
+            return await this.tenTimesScraper.scrape(city, browser);
+        } finally {
+            if (!existingBrowser) await browser.close();
+        }
+    }
+
     async runFullCycle() {
         const cities = ['mumbai', 'delhi', 'bangalore', 'hyderabad', 'chennai', 'kolkata', 'pune', 'gurugram', 'noida'];
         const browser = await this.getBrowser();
@@ -67,8 +89,10 @@ export class ScraperService {
             for (const city of cities) {
                 const bmsEvents = await this.bmsScraper.scrape(city, browser);
                 const insiderEvents = await this.insiderScraper.scrape(city, browser);
+                const ebEvents = await this.eventbriteScraper.scrape(city, browser);
+                const ttEvents = await this.tenTimesScraper.scrape(city, browser);
 
-                console.log(`Processed ${bmsEvents.length + insiderEvents.length} events for ${city}`);
+                console.log(`Processed ${bmsEvents.length + insiderEvents.length + ebEvents.length + ttEvents.length} events for ${city}`);
             }
         } finally {
             await browser.close();

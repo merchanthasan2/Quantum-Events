@@ -31,8 +31,8 @@ export class DataSyncService {
                 try {
                     console.log(`\n🏙️  [DataSync] Syncing city: ${citySlug.toUpperCase()}`);
 
-                    // Fetch from both sources using the same browser
-                    const [bmsEvents, insiderEvents] = await Promise.all([
+                    // Fetch from all sources using the same browser
+                    const [bmsEvents, insiderEvents, ebEvents, ttEvents] = await Promise.all([
                         this.scraper.scrapeBookMyShow(citySlug, browser).catch(err => {
                             console.error(`  - BMS Scraper failed for ${citySlug}:`, err.message);
                             return [];
@@ -40,11 +40,19 @@ export class DataSyncService {
                         this.scraper.scrapeInsider(citySlug, browser).catch(err => {
                             console.error(`  - Insider Scraper failed for ${citySlug}:`, err.message);
                             return [];
+                        }),
+                        this.scraper.scrapeEventbrite(citySlug, browser).catch(err => {
+                            console.error(`  - Eventbrite Scraper failed for ${citySlug}:`, err.message);
+                            return [];
+                        }),
+                        this.scraper.scrapeTenTimes(citySlug, browser).catch(err => {
+                            console.error(`  - 10Times Scraper failed for ${citySlug}:`, err.message);
+                            return [];
                         })
                     ]);
 
-                    const allScraped = [...bmsEvents, ...insiderEvents];
-                    console.log(`  📈 Found ${allScraped.length} events (${bmsEvents.length} BMS, ${insiderEvents.length} Insider)`);
+                    const allScraped = [...bmsEvents, ...insiderEvents, ...ebEvents, ...ttEvents];
+                    console.log(`  📈 Found ${allScraped.length} events (${bmsEvents.length} BMS, ${insiderEvents.length} Insider, ${ebEvents.length} Eventbrite, ${ttEvents.length} 10Times)`);
 
                     let savedCount = 0;
                     let skippedCount = 0;
@@ -96,6 +104,10 @@ export class DataSyncService {
 
         const existing = regCheck.data || sourceCheck.data;
 
+        // --- AFFILIATE / TRACKING LOGIC ---
+        // Automatically append referral tags to prove traffic attribution
+        const taggedUrl = this.addReferralParams(scraped.registration_url);
+
         const eventData = {
             title: scraped.title,
             description: scraped.description,
@@ -107,7 +119,7 @@ export class DataSyncService {
             event_date: scraped.event_date,
             event_time: scraped.event_time || '19:00:00',
             image_url: scraped.image_url,
-            registration_url: scraped.registration_url,
+            registration_url: taggedUrl,
             ticket_price_min: scraped.price_min,
             ticket_price_max: scraped.price_max,
             is_free: scraped.is_free,
@@ -139,5 +151,28 @@ export class DataSyncService {
         }
 
         return true;
+    }
+
+    /**
+     * Appends affiliate and tracking parameters to outgoing URLs.
+     * This creates "proof of work" for future partnership negotiations.
+     */
+    private addReferralParams(url: string): string {
+        try {
+            const urlObj = new URL(url);
+
+            // 1. Generic Ref Param (Proof of traffic)
+            urlObj.searchParams.set('ref', 'quantumevents');
+
+            // 2. Standard UTM Params (Google Analytics compatible)
+            urlObj.searchParams.set('utm_source', 'quantumevents');
+            urlObj.searchParams.set('utm_medium', 'listing');
+            urlObj.searchParams.set('utm_campaign', 'organic_discovery');
+
+            return urlObj.toString();
+        } catch (e) {
+            // If URL is invalid, return as is
+            return url;
+        }
     }
 }

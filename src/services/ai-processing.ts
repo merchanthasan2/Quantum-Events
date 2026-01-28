@@ -49,7 +49,10 @@ export class AIProcessingService {
             'drinks': 'Food & Drinks',
             'adventure': 'Adventure',
             'spiritual': 'Spirituality',
-            'yoga': 'Spirituality'
+            'yoga': 'Spirituality',
+            'movies': 'Movies',
+            'cinema': 'Movies',
+            'film': 'Movies'
         };
 
         const normalized = mapping[rawCategory.toLowerCase()];
@@ -66,6 +69,7 @@ export class AIProcessingService {
         if (content.includes('yoga') || content.includes('spiritual') || content.includes('meditation')) return 'Spirituality';
         if (content.includes('circus') || content.includes('kids') || content.includes('children')) return 'Kids';
         if (content.includes('exhibition') || content.includes('art') || content.includes('gallery')) return 'Exhibitions';
+        if (content.includes('movie') || content.includes('cinema') || content.includes('film') || content.includes('now showing')) return 'Movies';
 
         return 'Events';
     }
@@ -105,7 +109,8 @@ export class AIProcessingService {
             'Spirituality': ['spiritual', 'yoga', 'meditation', 'retreat', 'temple', 'holistic', 'wellness', 'healing'],
             'Exhibitions': ['exhibition', 'art', 'gallery', 'museum', 'trade', 'fair', 'expo', 'fashion', 'clothing', 'jewelry'],
             'Kids': ['kids', 'children', 'family', 'parents', 'baby', 'toddler', 'school', 'fun for kids'],
-            'Shopping': ['shopping', 'market', 'flea', 'sale', 'pop-up', 'popup', 'store', 'boutique']
+            'Shopping': ['shopping', 'market', 'flea', 'sale', 'pop-up', 'popup', 'store', 'boutique'],
+            'Movies': ['movie', 'cinema', 'film', 'release', 'showing', 'theatre', 'theater']
         };
 
         for (const [cat, keywords] of Object.entries(categoryKeywords)) {

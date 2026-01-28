@@ -76,10 +76,15 @@ async function getInitialData(filters: { city?: string; category?: string; q?: s
     const tomorrow = addDays(now, 1);
     query = query.eq('event_date', format(tomorrow, 'yyyy-MM-dd'));
   } else if (timeFilter === 'weekend') {
-    const nextSat = addDays(startOfWeek(now, { weekStartsOn: 1 }), 5);
-    const nextSun = addDays(startOfWeek(now, { weekStartsOn: 1 }), 6);
-    query = query.gte('event_date', format(nextSat, 'yyyy-MM-dd'))
-      .lte('event_date', format(nextSun, 'yyyy-MM-dd'));
+    // Get next Friday, Saturday, Sunday
+    const today = new Date();
+    const dayOfWeek = today.getDay();
+    const distanceToFriday = (5 + 7 - dayOfWeek) % 7;
+    const nextFriday = addDays(today, distanceToFriday);
+    const nextSunday = addDays(nextFriday, 2);
+
+    query = query.gte('event_date', format(nextFriday, 'yyyy-MM-dd'))
+      .lte('event_date', format(nextSunday, 'yyyy-MM-dd'));
   } else if (timeFilter === 'week') {
     const startOfNextWeek = startOfWeek(addDays(now, 7), { weekStartsOn: 1 });
     const endOfNextWeek = endOfWeek(addDays(now, 7), { weekStartsOn: 1 });
@@ -166,7 +171,7 @@ export default async function Home({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
           {events.map((event) => (
             <EventCard key={event.id} event={event} />
           ))}

@@ -11,6 +11,7 @@ import { generateCalendarLink } from '@/lib/calendar';
 import { EventActions } from '@/components/EventActions';
 import { ReviewSection } from '@/components/ReviewSection';
 import { RecentlyViewedTracker } from '@/components/RecentlyViewedTracker';
+import { RelatedEvents } from '@/components/RelatedEvents';
 
 async function getEvent(id: string) {
     const { data: event } = await supabase
@@ -163,6 +164,12 @@ export default async function EventDetail({
                             )}
 
                             <ReviewSection eventId={event.id} />
+
+                            <RelatedEvents
+                                currentEventId={event.id}
+                                categoryId={event.category?.id}
+                                citySlug={event.city?.slug}
+                            />
                         </div>
                     </div>
 
@@ -195,7 +202,24 @@ export default async function EventDetail({
                                                 year: 'numeric'
                                             })}
                                         </div>
-                                        <div className="text-sm text-blue-700 font-bold">{event.event_time}</div>
+                                        <div className="text-sm text-blue-700 font-bold">
+                                            {(() => {
+                                                if (!event.event_time) return '';
+                                                try {
+                                                    // Parse time string (e.g., "19:00:00")
+                                                    const [hours, minutes] = event.event_time.split(':');
+                                                    const date = new Date();
+                                                    date.setHours(parseInt(hours), parseInt(minutes));
+                                                    return date.toLocaleTimeString('en-IN', {
+                                                        hour: 'numeric',
+                                                        minute: '2-digit',
+                                                        hour12: true
+                                                    });
+                                                } catch (e) {
+                                                    return event.event_time;
+                                                }
+                                            })()}
+                                        </div>
                                     </div>
                                 </div>
 

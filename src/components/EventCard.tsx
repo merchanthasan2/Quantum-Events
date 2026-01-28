@@ -41,23 +41,8 @@ export function EventCard({ event, onClick }: EventCardProps) {
         });
     };
 
-    const formatPrice = () => {
-        if (event.is_free) return 'Free';
-        if (!event.ticket_price_min || event.ticket_price_min === 0) {
-            // If we have no price info but it's not explicitly free, 
-            // it's better to say 'Price on Website' or 'Register'
-            return 'Register';
-        }
-        if (event.ticket_price_min === event.ticket_price_max) {
-            return `₹${event.ticket_price_min}`;
-        }
-        return `₹${event.ticket_price_min} - ₹${event.ticket_price_max}`;
-    };
-
     const getCTA = () => {
-        // If it's a paid event from a known source, 'Book Now' is better
         if (event.source === 'BookMyShow' || event.source === 'District.in') return 'Book Now';
-
         const isInformationOnly = !event.ticket_price_min || event.ticket_price_min === 0 ||
             ['Shopping', 'Exhibition', 'Community'].includes(event.category?.name || '');
         return isInformationOnly ? 'View Details' : 'Book Now';
@@ -72,7 +57,6 @@ export function EventCard({ event, onClick }: EventCardProps) {
     };
 
     return (
-    return (
         <a
             href={`/events/${event.id}`}
             onClick={(e) => {
@@ -81,10 +65,10 @@ export function EventCard({ event, onClick }: EventCardProps) {
                     onClick();
                 }
             }}
-            className="group flex flex-col sm:flex-row bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden border border-gray-100 hover:-translate-y-1 h-full"
+            className="group flex bg-white rounded-3xl shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden border border-gray-100 hover:-translate-y-1 h-full"
         >
-            {/* Image Section - Full width mobile, fixed width desktop */}
-            <div className="relative w-full sm:w-48 lg:w-56 xl:w-64 shrink-0 aspect-video sm:aspect-auto sm:h-full overflow-hidden">
+            {/* Image Side - Fixed width */}
+            <div className="relative w-48 sm:w-64 shrink-0 overflow-hidden min-h-[250px]">
                 {(() => {
                     const isPlaceholder = ImageProcessor.isPlaceholder(event.image_url);
                     const displayImage = isPlaceholder
@@ -92,63 +76,45 @@ export function EventCard({ event, onClick }: EventCardProps) {
                         : event.image_url;
 
                     return displayImage ? (
-                        <>
-                            <Image
-                                src={displayImage}
-                                alt={event.title}
-                                fill
-                                className="object-cover group-hover:scale-110 transition-transform duration-700"
-                                sizes="(max-width: 640px) 100vw, 300px"
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60 sm:opacity-0 sm:group-hover:opacity-30 transition-opacity"></div>
-                        </>
+                        <Image
+                            src={displayImage}
+                            alt={event.title}
+                            fill
+                            className="object-cover object-top h-full group-hover:scale-105 transition-transform duration-700"
+                            sizes="(max-width: 640px) 100vw, 300px"
+                        />
                     ) : (
-                        <div className="w-full h-full bg-gradient-to-br from-blue-100 via-cyan-50 to-emerald-100 flex items-center justify-center">
-                            <Calendar className="w-12 h-12 text-blue-400 animate-pulse" />
+                        <div className="w-full h-full bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center min-h-[250px]">
+                            <Calendar className="w-12 h-12 text-blue-300" />
                         </div>
                     );
                 })()}
 
+                {/* Badges on Image */}
                 <div className="absolute top-3 left-3 flex flex-col gap-2 z-10">
                     {isJustAdded() && (
-                        <div className="bg-gradient-to-r from-green-500 to-emerald-500 text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-lg flex items-center gap-1 animate-pulse">
-                            <span className="w-1.5 h-1.5 bg-white rounded-full animate-ping"></span>
+                        <div className="bg-emerald-500/90 backdrop-blur-sm text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow-sm flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span>
                             New
                         </div>
                     )}
                     {event.is_featured && (
-                        <div className="bg-gradient-to-r from-yellow-400 to-orange-400 text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-lg">
-                            ⭐ Featured
+                        <div className="bg-amber-400/90 backdrop-blur-sm text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow-sm">
+                            Featured
                         </div>
                     )}
                 </div>
-
-                <div className="absolute top-3 right-3 sm:hidden">
-                    <button
-                        onClick={async (e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            const { data: { user } } = await supabase.auth.getUser();
-                            if (!user) return alert('Please sign in to save favorites');
-
-                            if (isFavorited) {
-                                await supabase.from('favorites').delete().eq('user_id', user.id).eq('event_id', event.id);
-                                setIsFavorited(false);
-                            } else {
-                                await supabase.from('favorites').insert({ user_id: user.id, event_id: event.id });
-                                setIsFavorited(true);
-                            }
-                        }}
-                        className={`p-1.5 rounded-full backdrop-blur-md border border-white/30 shadow-sm ${isFavorited ? 'bg-red-500 text-white' : 'bg-black/20 text-white'}`}
-                    >
-                        <Heart className={`w-3.5 h-3.5 ${isFavorited ? 'fill-current' : ''}`} />
-                    </button>
-                </div>
             </div>
 
-            {/* Content Section */}
-            <div className="flex flex-col p-4 grow relative">
-                <div className="hidden sm:block absolute top-4 right-4 z-10">
+            {/* Content Side */}
+            <div className="flex flex-col p-5 grow min-w-0">
+                <div className="flex justify-between items-start mb-2">
+                    {event.category && (
+                        <span className="text-[11px] uppercase font-bold tracking-wider text-blue-600 bg-blue-50 px-2 py-1 rounded-lg">
+                            {event.category.name}
+                        </span>
+                    )}
+
                     <button
                         onClick={async (e) => {
                             e.preventDefault();
@@ -164,51 +130,46 @@ export function EventCard({ event, onClick }: EventCardProps) {
                                 setIsFavorited(true);
                             }
                         }}
-                        className={`p-2 rounded-full hover:bg-gray-100 transition-colors ${isFavorited ? 'text-red-500 fill-red-500' : 'text-gray-300'}`}
+                        className={`p-2 -mr-2 -mt-2 rounded-full hover:bg-gray-50 transition-colors ${isFavorited ? 'text-red-500 fill-red-500' : 'text-gray-300 hover:text-red-400'}`}
                     >
                         <Heart className={`w-5 h-5 ${isFavorited ? 'fill-current' : ''}`} />
                     </button>
                 </div>
 
-                <div className="mb-1">
-                    {event.category && (
-                        <span
-                            className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-md border"
-                            style={{
-                                color: event.category.color,
-                                backgroundColor: `${event.category.color}10`,
-                                borderColor: `${event.category.color}30`
-                            }}
-                        >
-                            {event.category.name}
-                        </span>
-                    )}
-                </div>
-
-                <h3 className="text-lg font-bold text-gray-900 mb-2 leading-tight pr-8 group-hover:text-blue-600 transition-colors">
+                <h3 className="text-lg font-bold text-gray-900 mb-3 leading-snug group-hover:text-blue-600 transition-colors line-clamp-2">
                     {event.title}
                 </h3>
 
-                <div className="space-y-2 mb-4">
-                    <div className="flex items-center text-sm text-gray-600">
-                        <Calendar className="w-4 h-4 mr-2 text-blue-500 shrink-0" />
-                        <span className="font-medium truncate">{formatDate(event.event_date)}</span>
+                <div className="space-y-1.5 mb-4">
+                    <div className="flex items-center text-sm font-medium text-gray-500">
+                        <Calendar className="w-4 h-4 mr-2 text-gray-400 shrink-0" />
+                        <span className="truncate">{formatDate(event.event_date)}</span>
+                        {event.event_time && (
+                            <>
+                                <span className="mx-1.5 text-gray-300">•</span>
+                                <span className="truncate">{event.event_time}</span>
+                            </>
+                        )}
                     </div>
-                    <div className="flex items-center text-sm text-gray-600">
-                        <MapPin className="w-4 h-4 mr-2 text-emerald-500 shrink-0" />
+                    <div className="flex items-center text-sm font-medium text-gray-500">
+                        <MapPin className="w-4 h-4 mr-2 text-gray-400 shrink-0" />
                         <span className="truncate">{event.venue}</span>
                     </div>
                 </div>
 
-                <div className="mt-auto pt-3 border-t border-gray-100 flex items-center justify-between">
-                    <span className="font-black text-lg text-gray-900">
-                        {event.is_free ? 'Free' : (
-                            event.ticket_price_min ? `₹${event.ticket_price_min}` : 'Register'
-                        )}
-                    </span>
+                <div className="mt-auto pt-4 border-t border-gray-100 flex items-center justify-between gap-4">
+                    <div>
+                        <div className="text-[10px] uppercase font-bold text-gray-400 tracking-wider mb-0.5">Starting from</div>
+                        <div className="text-lg font-black text-gray-900">
+                            {event.is_free ? 'Free' : (
+                                event.ticket_price_min ? `₹${event.ticket_price_min}` : 'Free'
+                            )}
+                        </div>
+                    </div>
 
-                    <span className="text-sm font-bold text-blue-600 flex items-center group-hover:underline">
-                        {getCTA()} <ExternalLink className="w-3 h-3 ml-1" />
+                    <span className="px-5 py-2.5 bg-gray-900 text-white text-sm font-bold rounded-xl group-hover:bg-blue-600 transition-colors shadow-sm flex items-center gap-2">
+                        {getCTA()}
+                        {/* <ExternalLink className="w-3.5 h-3.5" /> */}
                     </span>
                 </div>
             </div>
