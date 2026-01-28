@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import { Mail, Phone, MapPin, Instagram, Twitter, Facebook, ExternalLink } from 'lucide-react';
 
+import { LogoText } from './Logo';
+
 export function Footer() {
     return (
         <footer className="bg-white border-t border-gray-100 pt-16 pb-8 mt-20">
@@ -11,9 +13,9 @@ export function Footer() {
                     <div className="col-span-1 md:col-span-1">
                         <Link
                             href="/"
-                            className="text-2xl font-extrabold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent mb-6 inline-block"
+                            className="mb-6 inline-block"
                         >
-                            Quantum Events
+                            <LogoText className="text-2xl" />
                         </Link>
                         <p className="text-gray-500 font-medium mb-6">
                             India's #1 AI-powered events discovery platform. We bring the best of your city to your fingertips.
@@ -75,7 +77,7 @@ export function Footer() {
                         <ul className="space-y-4">
                             <li className="flex items-center gap-3 text-gray-500 font-bold">
                                 <Mail className="w-4 h-4 text-blue-600" />
-                                hello@quantumevents.in
+                                hello@aajkascene.com
                             </li>
                             <li className="flex items-center gap-3 text-gray-500 font-bold">
                                 <Phone className="w-4 h-4 text-blue-600" />
@@ -91,7 +93,7 @@ export function Footer() {
 
                 <div className="pt-8 border-t border-gray-100 text-center">
                     <p className="text-gray-400 font-bold text-sm">
-                        © 2026 Quantum Events. Built with ❤️ for India.
+                        © 2026 Aaj Ka Scene. Built with ❤️ for India.
                     </p>
                 </div>
             </div>

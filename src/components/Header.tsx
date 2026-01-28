@@ -8,6 +8,8 @@ import { City } from '@/lib/types';
 import { supabase } from '@/lib/supabase';
 import { CitySelector } from './CitySelector';
 
+import { Logo } from './Logo';
+
 interface HeaderProps {
     cities: City[];
     selectedCity: City | null;
@@ -59,9 +61,9 @@ export function Header({ cities, selectedCity }: HeaderProps) {
                     <div className="flex items-center gap-6">
                         <Link
                             href="/"
-                            className="text-xl sm:text-2xl font-extrabold bg-gradient-to-r from-blue-600 via-cyan-600 to-emerald-600 bg-clip-text text-transparent hover:scale-105 transition-transform duration-300"
+                            className="hover:scale-105 transition-transform duration-300"
                         >
-                            Quantum Events
+                            <Logo />
                         </Link>
                         <CitySelector cities={cities} selectedCity={selectedCity} />
                     </div>

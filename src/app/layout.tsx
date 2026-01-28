@@ -7,22 +7,22 @@ import { Suspense } from "react";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Quantum Events - India's #1 Events Discovery Platform",
+  title: "Aaj Ka Scene - Your City's Best Events",
   description: "Discover the best activities, concerts, workshops, and more across Mumbai, Delhi, Bangalore and beyond.",
-  keywords: "events in india, mumbai events, delhi events, bangalore events, book tickets, workshops, concerts",
+  keywords: "events in india, mumbai events, delhi events, bangalore events, book tickets, workshops, concerts, aaj ka scene",
   manifest: "/manifest.json",
   openGraph: {
-    title: "Quantum Events India",
+    title: "Aaj Ka Scene",
     description: "AI-powered events discovery platform for India's major cities.",
-    url: "https://quantumevents.in",
-    siteName: "Quantum Events",
+    url: "https://aajkascene.com",
+    siteName: "Aaj Ka Scene",
     locale: "en_IN",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Quantum Events India",
-    description: "Discover the best of your city with Quantum Events.",
+    title: "Aaj Ka Scene",
+    description: "Discover the best of your city with Aaj Ka Scene.",
   },
 };
 
