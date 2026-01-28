@@ -40,7 +40,7 @@ export function SearchFilters({ categories }: SearchFiltersProps) {
     ];
 
     return (
-        <div className="max-w-4xl mx-auto -mt-10 px-4 relative z-20">
+        <div className="max-w-4xl mx-auto -mt-6 px-4 relative z-20">
             <div className="glass-effect p-3 rounded-[2rem] shadow-2xl flex flex-col md:flex-row gap-2 border border-blue-100">
                 <form onSubmit={handleSearch} className="flex-grow relative group">
                     <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
