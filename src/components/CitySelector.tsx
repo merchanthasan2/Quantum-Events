@@ -1,7 +1,7 @@
 'use client';
 
 import { MapPin, Navigation, ChevronDown } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { City } from '@/lib/types';
 import { detectUserCity } from '@/lib/geolocation';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -16,16 +16,18 @@ export function CitySelector({ cities, selectedCity }: CitySelectorProps) {
     const [detectingLocation, setDetectingLocation] = useState(false);
     const router = useRouter();
     const searchParams = useSearchParams();
+    const hasAttempted = useRef(false);
 
-    const onCitySelect = (city: City) => {
+    const onCitySelect = useCallback((city: City) => {
         const params = new URLSearchParams(searchParams.toString());
         params.set('city', city.slug);
         router.push(`/?${params.toString()}`);
-    };
+    }, [searchParams, router]);
 
     useEffect(() => {
         const autoDetectCity = async () => {
-            if (!selectedCity && cities.length > 0) {
+            if (!selectedCity && cities.length > 0 && !hasAttempted.current) {
+                hasAttempted.current = true;
                 setDetectingLocation(true);
                 const detectedCity = await detectUserCity(cities);
                 setDetectingLocation(false);
