@@ -1,0 +1,143 @@
+import { supabase } from '../lib/supabase';
+import { ScraperService, ScrapedEvent } from './scraper';
+import { AIProcessingService } from './ai-processing';
+import puppeteer from 'puppeteer';
+
+export class DataSyncService {
+    private scraper = new ScraperService();
+
+    async syncAll() {
+        console.log('🚀 [DataSync] Starting Full Synchronization...');
+        const cities = ['mumbai', 'bangalore', 'pune', 'hyderabad', 'delhi', 'chennai', 'kolkata'];
+
+        // 1. Get existing cities and categories from DB for mapping
+        const { data: dbCities, error: cityError } = await supabase.from('cities').select('*');
+        const { data: dbCategories, error: catError } = await supabase.from('categories').select('*');
+
+        if (cityError || catError || !dbCities || !dbCategories) {
+            console.error('❌ [DataSync] Failed to fetch reference data:', cityError || catError || 'Unknown error');
+            return;
+        }
+
+        console.log(`📦 Found ${dbCities.length} cities and ${dbCategories.length} categories in DB.`);
+
+        const browser = await puppeteer.launch({
+            headless: true,
+            args: ['--no-sandbox', '--disable-setuid-sandbox']
+        });
+
+        try {
+            for (const citySlug of cities) {
+                try {
+                    console.log(`\n🏙️  [DataSync] Syncing city: ${citySlug.toUpperCase()}`);
+
+                    // Fetch from both sources using the same browser
+                    const [bmsEvents, insiderEvents] = await Promise.all([
+                        this.scraper.scrapeBookMyShow(citySlug, browser).catch(err => {
+                            console.error(`  - BMS Scraper failed for ${citySlug}:`, err.message);
+                            return [];
+                        }),
+                        this.scraper.scrapeInsider(citySlug, browser).catch(err => {
+                            console.error(`  - Insider Scraper failed for ${citySlug}:`, err.message);
+                            return [];
+                        })
+                    ]);
+
+                    const allScraped = [...bmsEvents, ...insiderEvents];
+                    console.log(`  📈 Found ${allScraped.length} events (${bmsEvents.length} BMS, ${insiderEvents.length} Insider)`);
+
+                    let savedCount = 0;
+                    let skippedCount = 0;
+
+                    for (const event of allScraped) {
+                        const result = await this.processAndSaveEvent(event, dbCities, dbCategories);
+                        if (result) savedCount++;
+                        else skippedCount++;
+                    }
+
+                    console.log(`  ✅ ${citySlug}: Saved ${savedCount}, Skipped ${skippedCount}`);
+
+                } catch (err) {
+                    console.error(`  ❌ Critical error syncing ${citySlug}:`, err);
+                }
+            }
+        } finally {
+            await browser.close();
+        }
+        console.log('\n✨ [DataSync] Synchronization Cycle Complete!');
+    }
+
+    private async processAndSaveEvent(scraped: ScrapedEvent, cities: any[], categories: any[]): Promise<boolean> {
+        // 1. AI Validation (Heuristic for now)
+        const validation = await AIProcessingService.validateEvent(scraped);
+        if (!validation.isValid) {
+            return false;
+        }
+
+        // 2. Map to City ID
+        const city = cities.find(c => c.slug === scraped.city.toLowerCase() || c.name.toLowerCase() === scraped.city.toLowerCase());
+        if (!city) return false;
+
+        // 3. Normalize and Map to Category ID
+        const normalizedCatName = AIProcessingService.normalizeCategory(scraped.category, scraped.title, scraped.description);
+        const category = categories.find(c => c.name === normalizedCatName) ||
+            categories.find(c => c.name.toLowerCase() === normalizedCatName.toLowerCase()) ||
+            categories.find(c => c.name === 'Events') ||
+            categories.find(c => c.id === 'meetups') ||
+            categories[0];
+
+        if (!category) return false;
+
+        // 4. Check for duplicates in DB (Separate queries for safety with complex URLs)
+        const [regCheck, sourceCheck] = await Promise.all([
+            supabase.from('events').select('id').eq('registration_url', scraped.registration_url).maybeSingle(),
+            supabase.from('events').select('id').eq('source_id', scraped.source_id).maybeSingle()
+        ]);
+
+        const existing = regCheck.data || sourceCheck.data;
+
+        const eventData = {
+            title: scraped.title,
+            description: scraped.description,
+            short_description: scraped.short_description || scraped.title,
+            category_id: category.id,
+            city_id: city.id,
+            venue: scraped.venue,
+            address: scraped.address,
+            event_date: scraped.event_date,
+            event_time: scraped.event_time || '19:00:00',
+            image_url: scraped.image_url,
+            registration_url: scraped.registration_url,
+            ticket_price_min: scraped.price_min,
+            ticket_price_max: scraped.price_max,
+            is_free: scraped.is_free,
+            source: scraped.source,
+            source_id: scraped.source_id,
+            is_approved: true, // Auto-approve scraped events for testing
+            is_featured: Math.random() > 0.9 // Randomly feature some for UI variety
+        };
+
+        if (existing) {
+            // Update
+            const { error } = await supabase
+                .from('events')
+                .update(eventData)
+                .eq('id', existing.id);
+            if (error) {
+                console.error(`  - Error updating "${scraped.title}":`, error.message);
+                return false;
+            }
+        } else {
+            // Insert
+            const { error } = await supabase
+                .from('events')
+                .insert([eventData]);
+            if (error) {
+                console.error(`  - Error inserting "${scraped.title}":`, error.message);
+                return false;
+            }
+        }
+
+        return true;
+    }
+}
