@@ -3,13 +3,13 @@
   publish = ".next"
 
 [build.environment]
+  NODE_VERSION = "20"
   NEXT_USE_NETLIFY_EDGE = "true"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 
 [functions]
-  node_version = "20"
   external_node_modules = ["puppeteer-core", "@sparticuz/chromium"]
 
 [[redirects]]
