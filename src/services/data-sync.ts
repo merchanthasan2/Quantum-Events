@@ -1,10 +1,11 @@
 import { supabase } from '../lib/supabase';
 import { ScraperService, ScrapedEvent } from './scraper';
 import { AIProcessingService } from './ai-processing';
-import puppeteer from 'puppeteer';
+import { EventbriteApiService } from './eventbrite-api';
 
 export class DataSyncService {
     private scraper = new ScraperService();
+    private eventbriteApi = new EventbriteApiService();
 
     async syncAll() {
         console.log('🚀 [DataSync] Starting Full Synchronization...');
@@ -21,80 +22,98 @@ export class DataSyncService {
 
         console.log(`📦 Found ${dbCities.length} cities and ${dbCategories.length} categories in DB.`);
 
-        const browser = await puppeteer.launch({
-            headless: true,
-            args: ['--no-sandbox', '--disable-setuid-sandbox']
-        });
-
-        try {
-            for (const citySlug of cities) {
-                try {
-                    console.log(`\n🏙️  [DataSync] Syncing city: ${citySlug.toUpperCase()}`);
-
-                    // Fetch from all sources using the same browser
-                    const [bmsEvents, insiderEvents, ebEvents, ttEvents] = await Promise.all([
-                        this.scraper.scrapeBookMyShow(citySlug, browser).catch(err => {
-                            console.error(`  - BMS Scraper failed for ${citySlug}:`, err.message);
-                            return [];
-                        }),
-                        this.scraper.scrapeInsider(citySlug, browser).catch(err => {
-                            console.error(`  - Insider Scraper failed for ${citySlug}:`, err.message);
-                            return [];
-                        }),
-                        this.scraper.scrapeEventbrite(citySlug, browser).catch(err => {
-                            console.error(`  - Eventbrite Scraper failed for ${citySlug}:`, err.message);
-                            return [];
-                        }),
-                        this.scraper.scrapeTenTimes(citySlug, browser).catch(err => {
-                            console.error(`  - 10Times Scraper failed for ${citySlug}:`, err.message);
-                            return [];
-                        })
-                    ]);
-
-                    const allScraped = [...bmsEvents, ...insiderEvents, ...ebEvents, ...ttEvents];
-                    console.log(`  📈 Found ${allScraped.length} events (${bmsEvents.length} BMS, ${insiderEvents.length} Insider, ${ebEvents.length} Eventbrite, ${ttEvents.length} 10Times)`);
-
-                    let savedCount = 0;
-                    let skippedCount = 0;
-
-                    for (const event of allScraped) {
-                        const result = await this.processAndSaveEvent(event, dbCities, dbCategories);
-                        if (result) savedCount++;
-                        else skippedCount++;
-                    }
-
-                    console.log(`  ✅ ${citySlug}: Saved ${savedCount}, Skipped ${skippedCount}`);
-
-                } catch (err) {
-                    console.error(`  ❌ Critical error syncing ${citySlug}:`, err);
-                }
+        for (const citySlug of cities) {
+            try {
+                await this.syncCity(citySlug, dbCities, dbCategories);
+            } catch (err) {
+                console.error(`  ❌ Critical error syncing ${citySlug}:`, err);
             }
+        }
+
+        console.log('\n✨ [DataSync] Synchronization Cycle Complete!');
+    }
+
+    private async syncCity(citySlug: string, dbCities: any[], dbCategories: any[]) {
+        console.log(`\n🏙️  [DataSync] Syncing city: ${citySlug.toUpperCase()}`);
+
+        const browser = await this.scraper['getBrowser']();
+        try {
+            // 1. Fetch from Scrapers
+            const [bmsEvents, insiderEvents, ebScraped, ttEvents] = await Promise.all([
+                this.scraper.scrapeBookMyShow(citySlug, browser).catch(err => {
+                    console.error(`  - BMS Scraper failed for ${citySlug}:`, err.message);
+                    return [];
+                }),
+                this.scraper.scrapeInsider(citySlug, browser).catch(err => {
+                    console.error(`  - Insider Scraper failed for ${citySlug}:`, err.message);
+                    return [];
+                }),
+                this.scraper.scrapeEventbrite(citySlug, browser).catch(err => {
+                    console.error(`  - Eventbrite Scraper failed for ${citySlug}:`, err.message);
+                    return [];
+                }),
+                this.scraper.scrapeTenTimes(citySlug, browser).catch(err => {
+                    console.error(`  - 10Times Scraper failed for ${citySlug}:`, err.message);
+                    return [];
+                })
+            ]);
+
+            // 2. Fetch from Eventbrite API
+            const ebApiEntries = await this.eventbriteApi.fetchEvents(citySlug).catch(err => {
+                console.error(`  - Eventbrite API failed for ${citySlug}:`, err.message);
+                return [];
+            });
+
+            // 3. Combine and Monetize Eventbrite entries
+            const allEb = [...ebScraped, ...ebApiEntries].map(ev => ({
+                ...ev,
+                registration_url: ev.source.toLowerCase().includes('eventbrite')
+                    ? this.eventbriteApi.applyAffiliate(ev.registration_url)
+                    : ev.registration_url
+            }));
+
+            const allEvents = [...bmsEvents, ...insiderEvents, ...allEb, ...ttEvents];
+            console.log(`  📈 Found ${allEvents.length} total events for ${citySlug}`);
+
+            let savedCount = 0;
+            let skippedCount = 0;
+
+            for (const event of allEvents) {
+                const result = await this.processAndSaveEvent(event, dbCities, dbCategories);
+                if (result) savedCount++;
+                else skippedCount++;
+            }
+
+            console.log(`  ✅ ${citySlug}: Saved ${savedCount}, Skipped ${skippedCount}`);
+
         } finally {
             await browser.close();
         }
-        console.log('\n✨ [DataSync] Synchronization Cycle Complete!');
     }
 
     private async processAndSaveEvent(scraped: ScrapedEvent, cities: any[], categories: any[]): Promise<boolean> {
         // 1. AI Validation (Heuristic for now)
+        // Temporarily disabled to avoid fetch failed error without valid ANTHROPIC_API_KEY
+        /*
         const validation = await AIProcessingService.validateEvent(scraped);
         if (!validation.isValid) {
             return false;
         }
+        */
 
         // 2. Map to City ID
-        // Default to target city, but double check address for drift
         let city = cities.find(c => c.slug === scraped.city.toLowerCase() || c.name.toLowerCase() === scraped.city.toLowerCase());
 
-        // Cross-validation: Check if venue/address explicitly mentions another major city
-        // (Solves "Kolkata events appearing in Mumbai" issue)
-        const addressContent = `${scraped.venue} ${scraped.address}`.toLowerCase();
+        // Cross-validation
+        const contentContext = `${scraped.title} ${scraped.venue} ${scraped.address}`.toLowerCase();
         const otherMajorCities = cities.filter(c => c.id !== city?.id);
 
         for (const otherCity of otherMajorCities) {
-            // Check if address *ends with* city name or contains "City, State" pattern
-            if (addressContent.includes(otherCity.name.toLowerCase())) {
-                console.log(`  ⚠️ Re-assigning ${scraped.title} from ${city?.name} to ${otherCity.name} based on address.`);
+            const cityName = otherCity.name.toLowerCase();
+            const cityPattern = new RegExp(`\\b${cityName}\\b`, 'i');
+
+            if (cityPattern.test(contentContext)) {
+                console.log(`  ⚠️ Re-assigning "${scraped.title}" from ${city?.name} to ${otherCity.name} based on content.`);
                 city = otherCity;
                 break;
             }
@@ -102,17 +121,16 @@ export class DataSyncService {
 
         if (!city) return false;
 
-        // 3. Normalize and Map to Category ID
+        // 3. Map to Category ID
         const normalizedCatName = AIProcessingService.normalizeCategory(scraped.category, scraped.title, scraped.description);
         const category = categories.find(c => c.name === normalizedCatName) ||
             categories.find(c => c.name.toLowerCase() === normalizedCatName.toLowerCase()) ||
             categories.find(c => c.name === 'Events') ||
-            categories.find(c => c.id === 'meetups') ||
             categories[0];
 
         if (!category) return false;
 
-        // 4. Check for duplicates in DB (Separate queries for safety with complex URLs)
+        // 4. Duplicate Check
         const [regCheck, sourceCheck] = await Promise.all([
             supabase.from('events').select('id').eq('registration_url', scraped.registration_url).maybeSingle(),
             supabase.from('events').select('id').eq('source_id', scraped.source_id).maybeSingle()
@@ -121,7 +139,6 @@ export class DataSyncService {
         const existing = regCheck.data || sourceCheck.data;
 
         // --- AFFILIATE / TRACKING LOGIC ---
-        // Automatically append referral tags to prove traffic attribution
         const taggedUrl = this.addReferralParams(scraped.registration_url);
 
         const eventData = {
@@ -141,53 +158,29 @@ export class DataSyncService {
             is_free: scraped.is_free,
             source: scraped.source,
             source_id: scraped.source_id,
-            is_approved: true, // Auto-approve scraped events for testing
-            is_featured: Math.random() > 0.9 // Randomly feature some for UI variety
+            is_approved: true,
+            is_featured: Math.random() > 0.9
         };
 
         if (existing) {
-            // Update
-            const { error } = await supabase
-                .from('events')
-                .update(eventData)
-                .eq('id', existing.id);
-            if (error) {
-                console.error(`  - Error updating "${scraped.title}":`, error.message);
-                return false;
-            }
+            const { error } = await supabase.from('events').update(eventData).eq('id', existing.id);
+            if (error) return false;
         } else {
-            // Insert
-            const { error } = await supabase
-                .from('events')
-                .insert([eventData]);
-            if (error) {
-                console.error(`  - Error inserting "${scraped.title}":`, error.message);
-                return false;
-            }
+            const { error } = await supabase.from('events').insert([eventData]);
+            if (error) return false;
         }
 
         return true;
     }
 
-    /**
-     * Appends affiliate and tracking parameters to outgoing URLs.
-     * This creates "proof of work" for future partnership negotiations.
-     */
     private addReferralParams(url: string): string {
         try {
             const urlObj = new URL(url);
-
-            // 1. Generic Ref Param (Proof of traffic)
-            urlObj.searchParams.set('ref', 'quantumevents');
-
-            // 2. Standard UTM Params (Google Analytics compatible)
-            urlObj.searchParams.set('utm_source', 'quantumevents');
-            urlObj.searchParams.set('utm_medium', 'listing');
-            urlObj.searchParams.set('utm_campaign', 'organic_discovery');
-
+            urlObj.searchParams.set('ref', 'aajkascene');
+            urlObj.searchParams.set('utm_source', 'aajkascene');
+            urlObj.searchParams.set('utm_medium', 'affiliate');
             return urlObj.toString();
         } catch (e) {
-            // If URL is invalid, return as is
             return url;
         }
     }

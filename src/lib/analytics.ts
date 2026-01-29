@@ -81,10 +81,15 @@ export class AnalyticsService {
     }
 
     private static getOSInfo(ua: string) {
-        if (ua.includes('Windows')) return 'Windows';
-        if (ua.includes('Mac OS')) return 'Mac OS';
-        if (ua.includes('Android')) return 'Android';
-        if (ua.includes('iOS')) return 'iOS';
+        if (ua.includes('iPhone')) return 'iPhone (iOS)';
+        if (ua.includes('iPad')) return 'iPad (iOS)';
+        if (ua.includes('Macintosh')) return 'Mac OS';
+        if (ua.includes('Windows NT 10.0')) return 'Windows 10/11';
+        if (ua.includes('Windows NT 6.1')) return 'Windows 7';
+        if (ua.includes('Android')) {
+            const match = ua.match(/Android\s([0-9\.]+)/);
+            return match ? `Android ${match[1]}` : 'Android';
+        }
         if (ua.includes('Linux')) return 'Linux';
         return 'Other';
     }

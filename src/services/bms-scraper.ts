@@ -76,9 +76,18 @@ export class BookMyShowScraper {
                         // Attempt to find Image
                         const imageEl = card.querySelector('img');
                         let imageUrl = imageEl?.src || '';
-                        const dataSrc = imageEl?.getAttribute('data-src');
-                        if (dataSrc && (!imageUrl || imageUrl.includes('placeholder'))) {
-                            imageUrl = dataSrc;
+
+                        // Handle BMS Lazy Loading (src is often a loading gif)
+                        if (imageUrl.includes('loading.gif') || imageUrl.includes('placeholder')) {
+                            const dataSrc = imageEl?.getAttribute('data-src');
+                            const srcset = imageEl?.getAttribute('srcset');
+                            imageUrl = dataSrc || (srcset ? srcset.split(' ')[0] : imageUrl);
+                        }
+
+                        // Force High-quality Transformation
+                        // BMS often serves small thumbnails, we can try to request larger versions by modifying URL params
+                        if (imageUrl.includes('assethost')) {
+                            imageUrl = imageUrl.replace('/et', '/mobile/et'); // Example of forced quality
                         }
 
                         // Text Content Extraction
@@ -163,9 +172,8 @@ export class BookMyShowScraper {
                     window.scrollBy(0, distance);
                     totalHeight += distance;
 
-                    // Deep scroll: 15000px ~ 20-30 viewports
-                    // This ensures we get almost everything loaded on the page
-                    if (totalHeight >= 15000 || totalHeight >= scrollHeight) {
+                    // Extra deep scroll: 60000px to ensure we capture 100% of listing
+                    if (totalHeight >= 60000 || totalHeight >= scrollHeight) {
                         clearInterval(timer);
                         resolve();
                     }

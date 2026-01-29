@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { Calendar, MapPin, IndianRupee, Globe, Phone, Mail, Image as ImageIcon, Sparkles } from 'lucide-react';
@@ -9,6 +9,8 @@ import { useRouter } from 'next/navigation';
 
 export default function SubmitEvent() {
     const router = useRouter();
+    const [cities, setCities] = useState<any[]>([]);
+    const [categories, setCategories] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
         title: '',
@@ -28,6 +30,18 @@ export default function SubmitEvent() {
         organizer: '',
         contact: '',
     });
+
+    useEffect(() => {
+        const fetchData = async () => {
+            const [cit, cat] = await Promise.all([
+                supabase.from('cities').select('*').order('name'),
+                supabase.from('categories').select('*').order('name')
+            ]);
+            setCities(cit.data || []);
+            setCategories(cat.data || []);
+        };
+        fetchData();
+    }, []);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -54,7 +68,7 @@ export default function SubmitEvent() {
 
     return (
         <main className="min-h-screen bg-gray-50 pb-20">
-            <Header cities={[]} selectedCity={null} />
+            <Header cities={cities} selectedCity={null} />
 
             <div className="max-w-4xl mx-auto px-4 py-12 md:py-20">
                 <div className="text-center mb-12 animate-slide-up">
@@ -94,10 +108,9 @@ export default function SubmitEvent() {
                                 onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
                             >
                                 <option value="">Select Category</option>
-                                {/* Dynamically populated categories would go here */}
-                                <option value="1">Concerts</option>
-                                <option value="2">Comedy</option>
-                                <option value="3">Workshops</option>
+                                {categories.map(c => (
+                                    <option key={c.id} value={c.id}>{c.name}</option>
+                                ))}
                             </select>
                         </div>
 
@@ -110,9 +123,9 @@ export default function SubmitEvent() {
                                 onChange={(e) => setFormData({ ...formData, city_id: e.target.value })}
                             >
                                 <option value="">Select City</option>
-                                <option value="1">Mumbai</option>
-                                <option value="2">Delhi</option>
-                                <option value="3">Bangalore</option>
+                                {cities.map(c => (
+                                    <option key={c.id} value={c.id}>{c.name}</option>
+                                ))}
                             </select>
                         </div>
                     </div>

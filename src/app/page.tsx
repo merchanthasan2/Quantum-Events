@@ -120,7 +120,7 @@ async function getInitialData(filters: { city?: string; category?: string; q?: s
   }
 
   try {
-    const eventsRes = await query.order('event_date', { ascending: true }).limit(40);
+    const eventsRes = await query.order('event_date', { ascending: true }).limit(200);
 
     if (eventsRes.error) {
       console.error('Error fetching events:', eventsRes.error);

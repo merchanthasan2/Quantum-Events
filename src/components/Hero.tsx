@@ -27,11 +27,11 @@ export function Hero() {
                 <div className="flex flex-wrap justify-center gap-4 md:gap-8 max-w-3xl mx-auto animate-scale-in">
                     <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-xl">
                         <Calendar className="w-4 h-4 text-blue-200" />
-                        <span className="text-sm font-bold">10,000+ Events</span>
+                        <span className="text-sm font-bold">5,000+ Events</span>
                     </div>
                     <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-xl">
                         <MapPin className="w-4 h-4 text-emerald-200" />
-                        <span className="text-sm font-bold">9 Major Cities</span>
+                        <span className="text-sm font-bold">7+ Major Cities</span>
                     </div>
                     <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-xl">
                         <Ticket className="w-4 h-4 text-cyan-200" />

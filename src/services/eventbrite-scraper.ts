@@ -135,7 +135,7 @@ export class EventbriteScraper {
                 let totalHeight = 0;
                 const distance = 100;
                 // Scroll just a bit to trigger lazy loading
-                const maxScroll = 2000;
+                const maxScroll = 15000;
                 const timer = setInterval(() => {
                     const scrollHeight = document.body.scrollHeight;
                     window.scrollBy(0, distance);

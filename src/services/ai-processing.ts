@@ -14,7 +14,9 @@ export class AIProcessingService {
 
         // 1b. Strict Re-Release Filter for Movies
         // If it's a movie, check for re-release markers
-        if (event.category === 'Movies' || content.includes('movie') || content.includes('cinema')) {
+        const isMovie = event.category?.toLowerCase() === 'movies' || content.includes('cinema') || content.includes('movie');
+
+        if (isMovie) {
             const reReleaseKeywords = [
                 're-release', 'rerelease',
                 'anniversary screening',
@@ -22,12 +24,16 @@ export class AIProcessingService {
                 'classic',
                 'old movie',
                 'reliving the magic',
-                'back in cinemas'
+                'back in cinemas',
+                '70mm',
+                'returns',
+                're-run',
+                'rerun'
             ];
 
             if (reReleaseKeywords.some(kw => content.includes(kw))) {
-                // Double check: acceptable if it's a "Premiere" or "Festival"
-                if (!content.includes('premiere') && !content.includes('festival')) {
+                // Double check: acceptable if it's a "Premiere" or "Festival" or "New"
+                if (!content.includes('premiere') && !content.includes('festival') && !content.includes('new release')) {
                     return { isValid: false, reason: 'Detected as a re-release or old movie screening' };
                 }
             }
@@ -82,15 +88,25 @@ export class AIProcessingService {
         // If generic 'Events', try keyword matching on title/desc
         const content = `${title} ${description}`.toLowerCase();
 
-        if (content.includes('music') || content.includes('concert') || content.includes('dj') || content.includes('festival')) return 'Music';
-        if (content.includes('comedy') || content.includes('standup') || content.includes('stand-up')) return 'Comedy';
+        // High confidence matches first
+        if (content.includes('workshop') || content.includes('masterclass') || content.includes('learn pottery') || content.includes('painting workshop')) return 'Workshops';
+        if (content.includes('standup comedy') || content.includes('stand-up comedy') || content.includes('comedy show')) return 'Comedy';
+        if (content.includes('live in concert') || content.includes('live concert') || content.includes('music festival')) return 'Music';
+
+        // General matches
+        if (content.includes('music') || content.includes('concert') || content.includes('dj') || content.includes('symphony')) return 'Music';
+        if (content.includes('comedy') || content.includes('standup') || (content.includes('live') && content.includes('funny'))) return 'Comedy';
         if (content.includes('workshop') || content.includes('class') || content.includes('learn')) return 'Workshops';
-        if (content.includes('food') || content.includes('drink') || content.includes('dining')) return 'Food & Drinks';
+        if (content.includes('food') || content.includes('drink') || content.includes('dining') || content.includes('tasting')) return 'Food & Drinks';
         if (content.includes('trek') || content.includes('adventure') || content.includes('camping')) return 'Adventure';
         if (content.includes('yoga') || content.includes('spiritual') || content.includes('meditation')) return 'Spirituality';
         if (content.includes('circus') || content.includes('kids') || content.includes('children')) return 'Kids';
-        if (content.includes('exhibition') || content.includes('art') || content.includes('gallery')) return 'Exhibitions';
-        if (content.includes('movie') || content.includes('cinema') || content.includes('film') || content.includes('now showing')) return 'Movies';
+        if (content.includes('exhibition') || content.includes('art gallery') || content.includes('expo')) return 'Exhibitions';
+
+        // Movie matches (be careful not to catch theater plays)
+        if (!content.includes('theatre play') && !content.includes('live performance')) {
+            if (content.includes('movie') || content.includes('cinema') || content.includes('film') || content.includes('now showing')) return 'Movies';
+        }
 
         return 'Events';
     }

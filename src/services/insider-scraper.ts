@@ -133,8 +133,8 @@ export class InsiderScraper {
                     window.scrollBy(0, distance);
                     totalHeight += distance;
 
-                    // Deep scroll: 8000px ~ 8-10 viewports
-                    if (totalHeight >= 8000 || totalHeight >= scrollHeight) {
+                    // Deep scroll: 40000px ~ 40-50 viewports
+                    if (totalHeight >= 40000 || totalHeight >= scrollHeight) {
                         clearInterval(timer);
                         resolve();
                     }
