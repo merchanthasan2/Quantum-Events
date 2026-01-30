@@ -13,6 +13,7 @@ export class AnalyticsService {
         // Get basic device/browser info
         const browser = this.getBrowserInfo(userAgent);
         const os = this.getOSInfo(userAgent);
+        const geo = await this.getGeoInfo();
 
         const { data: { user } } = await supabase.auth.getUser();
 
@@ -25,6 +26,8 @@ export class AnalyticsService {
                 browser,
                 screen_resolution: screenRes,
                 referral_source: typeof document !== 'undefined' ? document.referrer : null,
+                city: geo?.city || null,
+                country: geo?.country_name || null
             })
             .select('id')
             .single();
@@ -36,6 +39,16 @@ export class AnalyticsService {
 
         this.sessionId = data.id;
         return data.id;
+    }
+
+    private static async getGeoInfo() {
+        try {
+            const res = await fetch('https://ipapi.co/json/');
+            if (!res.ok) return null;
+            return await res.json();
+        } catch (e) {
+            return null; // Silently fail for ad-blockers/network issues
+        }
     }
 
     static async trackPageView(path: string, category?: string) {

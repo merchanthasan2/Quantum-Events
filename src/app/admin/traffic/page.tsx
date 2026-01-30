@@ -23,6 +23,8 @@ interface SessionData {
     browser: string;
     screen_resolution: string;
     referral_source: string;
+    city?: string;
+    country?: string;
 }
 
 export default function TrafficIntelligence() {
@@ -135,6 +137,7 @@ export default function TrafficIntelligence() {
                         <thead>
                             <tr className="bg-slate-50/50">
                                 <th className="px-6 py-4 text-xs font-black text-slate-500 uppercase tracking-wider">Device</th>
+                                <th className="px-6 py-4 text-xs font-black text-slate-500 uppercase tracking-wider">Location</th>
                                 <th className="px-6 py-4 text-xs font-black text-slate-500 uppercase tracking-wider">OS / Platform</th>
                                 <th className="px-6 py-4 text-xs font-black text-slate-500 uppercase tracking-wider">Browser</th>
                                 <th className="px-6 py-4 text-xs font-black text-slate-500 uppercase tracking-wider">Resolution</th>
@@ -154,11 +157,17 @@ export default function TrafficIntelligence() {
                                         </div>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
+                                        <div className="flex flex-col">
+                                            <span className="text-slate-900 font-bold">{session.city || 'Unknown'}</span>
+                                            <span className="text-slate-500 text-xs">{session.country || 'Unknown'}</span>
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
                                         <span className={`px-3 py-1 rounded-full text-xs font-black flex items-center gap-1.5 w-fit ${session.os?.includes('Windows') ? 'bg-blue-50 text-blue-600' :
-                                                session.os?.includes('Mac') ? 'bg-slate-900 text-white' :
-                                                    session.os?.includes('iPhone') || session.os?.includes('iPad') ? 'bg-slate-900 text-white' :
-                                                        session.os?.includes('Android') ? 'bg-emerald-50 text-emerald-600' :
-                                                            'bg-slate-100 text-slate-600'
+                                            session.os?.includes('Mac') ? 'bg-slate-900 text-white' :
+                                                session.os?.includes('iPhone') || session.os?.includes('iPad') ? 'bg-slate-900 text-white' :
+                                                    session.os?.includes('Android') ? 'bg-emerald-50 text-emerald-600' :
+                                                        'bg-slate-100 text-slate-600'
                                             }`}>
                                             {session.os?.includes('Mac') || session.os?.includes('iPhone') ? <Globe size={12} /> : null}
                                             {session.os || 'Unknown'}
