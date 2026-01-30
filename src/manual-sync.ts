@@ -1,10 +1,9 @@
-const dotenv = require('dotenv');
-const path = require('path');
+import dotenv from 'dotenv';
+import path from 'path';
+import { DataSyncService } from './services/data-sync';
 
 // Load env before anything else
 dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
-
-const { DataSyncService } = require('./services/data-sync');
 
 async function run() {
     console.log('🚀 Manual Sync Started');
