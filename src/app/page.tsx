@@ -54,7 +54,8 @@ async function getInitialData(filters: { city?: string; category?: string; q?: s
       category:categories(*),
       city:cities${activeCitySlug ? '!inner' : ''}(*)
     `)
-    .eq('is_approved', true);
+    //.eq('is_approved', true);
+    ;
 
   if (activeCitySlug) {
     query = query.eq('city.slug', activeCitySlug.toLowerCase());
