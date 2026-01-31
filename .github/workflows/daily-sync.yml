@@ -15,22 +15,12 @@ jobs:
           SYNC_URL_SECRET: ${{ secrets.DEPLOYED_URL }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |
-          echo "Preparing Sync Request..."
+          echo "Triggering Sync..."
+          # forcing production URL to ensure stability
+          TARGET_URL="https://aajkascene.netlify.app"
           
-          # Determine Target URL
-          TARGET_URL="$SYNC_URL_SECRET"
+          echo "Using URL: $TARGET_URL"
           
-          # Default to production if secret is missing or doesn't look like a URL
-          if [[ -z "$TARGET_URL" ]] || [[ "$TARGET_URL" != http* ]]; then
-            echo "⚠️  DEPLOYED_URL secret missing or invalid. Defaulting to production URL."
-            TARGET_URL="https://aajkascene.netlify.app"
-          fi
-          
-          # Remove trailing slash if present
-          TARGET_URL="${TARGET_URL%/}"
-          
-          echo "🚀 Triggering Sync at: $TARGET_URL/api/cron/sync"
-          
-          curl -v -X GET "$TARGET_URL/api/cron/sync" \
+          curl -v -L "$TARGET_URL/api/cron/sync" \
           -H "Authorization: Bearer $CRON_SECRET" \
           --fail
