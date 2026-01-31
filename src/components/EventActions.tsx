@@ -25,7 +25,7 @@ export function EventActions({ event, validRegistrationUrl }: { event: any, vali
     const handleLoginRedirect = () => {
         // Redirect to login with return URL
         const returnUrl = encodeURIComponent(window.location.pathname);
-        router.push(`/login?next=${returnUrl}`);
+        router.push(`/auth?next=${returnUrl}`);
     };
 
     if (loading) {

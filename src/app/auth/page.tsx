@@ -36,7 +36,10 @@ export default function AuthPage() {
                     password
                 });
                 if (error) throw error;
-                router.push('/');
+                // Check for return URL
+                const params = new URLSearchParams(window.location.search);
+                const nextUrl = params.get('next');
+                router.push(nextUrl || '/');
             }
         } catch (error: any) {
             console.error('Auth Error:', error);
