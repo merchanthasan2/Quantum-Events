@@ -89,7 +89,7 @@ export class InsiderScraper {
                             city: cityName,
                             venue: venue,
                             address: cityName,
-                            event_date: new Date().toISOString(),
+                            event_date: new Date(new Date().getTime() + (5.5 * 60 * 60 * 1000)).toISOString(),
                             image_url: imageUrl,
                             price_min: priceMin,
                             price_max: priceMin,

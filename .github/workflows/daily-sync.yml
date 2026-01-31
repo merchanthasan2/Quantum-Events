@@ -13,6 +13,12 @@ jobs:
       - name: Trigger Vibe Data Sync
         run: |
           echo "Triggering Sync..."
-          curl -X GET ${{ secrets.DEPLOYED_URL }}/api/cron/sync \
+          URL="${{ secrets.DEPLOYED_URL }}"
+          if [ -z "$URL" ]; then
+            echo "DEPLOYED_URL secret not found, using default."
+            URL="https://aajkascene.netlify.app"
+          fi
+          
+          curl -v -X GET "$URL/api/cron/sync" \
           -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
           --fail

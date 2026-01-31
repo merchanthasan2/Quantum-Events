@@ -99,7 +99,7 @@ export function Header({ cities, selectedCity }: HeaderProps) {
                             <span className="text-sm font-medium">Favorites</span>
                         </Link>
 
-                        {(profile?.is_admin || user?.email === 'happy143@gmail.com' || user?.email === 'merchanthasan2@gmail.com') && (
+                        {user && (
                             <Link
                                 href="/admin"
                                 className={`flex items-center space-x-2 px-4 py-2 rounded-xl transition-all duration-300 hover:scale-105 ${pathname.startsWith('/admin')

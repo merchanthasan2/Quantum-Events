@@ -9,7 +9,8 @@ export class DataSyncService {
 
     async syncAll() {
         console.log('🚀 [DataSync] Starting Full Synchronization...');
-        const cities = ['mumbai', 'bangalore', 'pune', 'hyderabad', 'delhi', 'chennai', 'kolkata'];
+        // Sync all major cities
+        const cities = ['mumbai', 'bangalore', 'pune', 'hyderabad', 'delhi', 'chennai', 'kolkata', 'gurugram', 'noida'];
 
         // 1. Get existing cities and categories from DB for mapping
         const { data: dbCities, error: cityError } = await supabase.from('cities').select('*');
@@ -58,11 +59,14 @@ export class DataSyncService {
                 })
             ]);
 
-            // 2. Fetch from Eventbrite API
+            // 2. Fetch from Eventbrite API (Deprecated/Rate-limited)
+            /*
             const ebApiEntries = await this.eventbriteApi.fetchEvents(citySlug).catch(err => {
                 console.error(`  - Eventbrite API failed for ${citySlug}:`, err.message);
                 return [];
             });
+            */
+            const ebApiEntries: ScrapedEvent[] = [];
 
             // 3. Combine and Monetize Eventbrite entries
             const allEb = [...ebScraped, ...ebApiEntries].map(ev => ({
@@ -72,8 +76,26 @@ export class DataSyncService {
                     : ev.registration_url
             }));
 
-            const allEvents = [...bmsEvents, ...insiderEvents, ...allEb, ...ttEvents];
-            console.log(`  📈 Found ${allEvents.length} total events for ${citySlug}`);
+            let allEvents = [...bmsEvents, ...insiderEvents, ...allEb, ...ttEvents];
+
+            // FIX: Normalize City Name locally to ensure mapping works
+            // This ensures 'bengaluru' from scraper becomes 'bangalore' matching our DB
+            allEvents.forEach(ev => {
+                ev.city = citySlug;
+            });
+
+
+
+            // SORT: By Date (Ascending - Recent first)
+            allEvents.sort((a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime());
+
+            // LIMIT: Max 100 events
+            if (allEvents.length > 100) {
+                console.log(`  ✂️ Limiting ${allEvents.length} events to 100 recent ones.`);
+                allEvents = allEvents.slice(0, 100);
+            }
+
+            console.log(`  📈 Found ${allEvents.length} total events for ${citySlug} (Unique & Sorted)`);
 
             let savedCount = 0;
             let skippedCount = 0;
@@ -131,12 +153,26 @@ export class DataSyncService {
         if (!category) return false;
 
         // 4. Duplicate Check
+        // Improve duplicate check to look for (title + date) combination to catch cross-provider duplicates
+        const { data: similar } = await supabase
+            .from('events')
+            .select('id, image_url')
+            .eq('title', scraped.title)
+            .eq('event_date', scraped.event_date) // Assuming exact date match for now
+            .maybeSingle();
+
         const [regCheck, sourceCheck] = await Promise.all([
             supabase.from('events').select('id').eq('registration_url', scraped.registration_url).maybeSingle(),
             supabase.from('events').select('id').eq('source_id', scraped.source_id).maybeSingle()
         ]);
 
-        const existing = regCheck.data || sourceCheck.data;
+        const existing = regCheck.data || sourceCheck.data || similar;
+
+        // Image validation: If image is empty or placeholder, try not to overwrite existing good image
+        let finalImage = scraped.image_url;
+        if (existing && existing.image_url && (!finalImage || finalImage.includes('placeholder'))) {
+            finalImage = existing.image_url;
+        }
 
         // --- AFFILIATE / TRACKING LOGIC ---
         const taggedUrl = this.addReferralParams(scraped.registration_url);
@@ -151,7 +187,7 @@ export class DataSyncService {
             address: scraped.address,
             event_date: scraped.event_date,
             event_time: scraped.event_time || '19:00:00',
-            image_url: scraped.image_url,
+            image_url: finalImage,
             registration_url: taggedUrl,
             ticket_price_min: scraped.price_min,
             ticket_price_max: scraped.price_max,

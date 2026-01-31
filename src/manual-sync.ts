@@ -1,16 +1,24 @@
+import dns from 'node:dns';
 import dotenv from 'dotenv';
 import path from 'path';
-import { DataSyncService } from './services/data-sync';
+
+if (dns.setDefaultResultOrder) {
+    dns.setDefaultResultOrder('ipv4first');
+}
 
 // Load env before anything else
-dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
+const envPath = path.resolve(process.cwd(), '.env.local');
+console.log('Loading .env from:', envPath);
+dotenv.config({ path: envPath });
 
 async function run() {
     console.log('🚀 Manual Sync Started');
+
+    // Dynamic import to ensure env vars are loaded first
+    const { DataSyncService } = await import('./services/data-sync');
+
     const syncService = new DataSyncService();
     try {
-        // To save time, we can modify DataSyncService to only sync one city if we wanted,
-        // but let's run the whole thing to see the API in action.
         await syncService.syncAll();
         console.log('✅ Manual Sync Finished');
     } catch (err) {

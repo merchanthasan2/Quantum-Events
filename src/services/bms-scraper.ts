@@ -3,14 +3,14 @@ import { ScrapedEvent } from './scraper';
 
 const CITY_MAPPING: Record<string, string> = {
     'mumbai': 'mumbai',
-    'delhi': 'ncr',
+    'delhi': 'national-capital-region-ncr',
     'bangalore': 'bengaluru',
     'hyderabad': 'hyderabad',
     'chennai': 'chennai',
     'kolkata': 'kolkata',
     'pune': 'pune',
-    'gurugram': 'ncr',
-    'noida': 'ncr'
+    'gurugram': 'national-capital-region-ncr',
+    'noida': 'national-capital-region-ncr'
 };
 
 export class BookMyShowScraper {
@@ -75,19 +75,32 @@ export class BookMyShowScraper {
 
                         // Attempt to find Image
                         const imageEl = card.querySelector('img');
-                        let imageUrl = imageEl?.src || '';
+                        let imageUrl = imageEl?.getAttribute('data-src') ||
+                            imageEl?.getAttribute('data-lazy-src') ||
+                            imageEl?.getAttribute('data-original') ||
+                            imageEl?.src || '';
 
-                        // Handle BMS Lazy Loading (src is often a loading gif)
-                        if (imageUrl.includes('loading.gif') || imageUrl.includes('placeholder')) {
-                            const dataSrc = imageEl?.getAttribute('data-src');
+                        // Handle BMS Lazy Loading / Fallbacks
+                        if (!imageUrl || imageUrl.includes('loading.gif') || imageUrl.includes('placeholder') || imageUrl.includes('data:image')) {
                             const srcset = imageEl?.getAttribute('srcset');
-                            imageUrl = dataSrc || (srcset ? srcset.split(' ')[0] : imageUrl);
+                            if (srcset) {
+                                // Get the last URL in srcset (usually highest quality)
+                                const candidates = srcset.split(',').map(s => s.trim().split(' ')[0]);
+                                imageUrl = candidates[candidates.length - 1];
+                            }
                         }
 
-                        // Force High-quality Transformation
-                        // BMS often serves small thumbnails, we can try to request larger versions by modifying URL params
-                        if (imageUrl.includes('assethost')) {
-                            imageUrl = imageUrl.replace('/et', '/mobile/et'); // Example of forced quality
+                        // Sanitize URL
+                        if (imageUrl && !imageUrl.startsWith('http')) {
+                            // Handle relative protocols
+                            if (imageUrl.startsWith('//')) imageUrl = 'https:' + imageUrl;
+                        }
+
+                        // Force High-quality Transformation for BMS
+                        if (imageUrl && imageUrl.includes('assethost')) {
+                            // BMS images often have /et/ or /tr/ in path, replace with mobile/et for better quality or remove resizing params 
+                            imageUrl = imageUrl.replace('/et', '/mobile/et');
+                            imageUrl = imageUrl.replace(/\d+x\d+/, '500x500'); // generic replacement if dimensions exist
                         }
 
                         // Text Content Extraction
@@ -137,6 +150,36 @@ export class BookMyShowScraper {
                             if (candidate) venue = candidate;
                         }
 
+                        // Date Parsing Strategy
+                        // Look for patterns like "Sun, 25 Aug" or "14 Feb"
+                        let eventDate = new Date(new Date().getTime() + (5.5 * 60 * 60 * 1000)); // Default to Today IST
+
+                        const dateRegex = /\b(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun),?\s+(\d{1,2})\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\b/i;
+                        const dateMatchDetails = details.find(d => dateRegex.test(d));
+                        const dateMatchText = allText.match(dateRegex);
+
+                        const matchedDateStr = dateMatchDetails || (dateMatchText ? dateMatchText[0] : null);
+
+                        if (matchedDateStr) {
+                            const match = matchedDateStr.match(/(\d{1,2})\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)/i);
+                            if (match) {
+                                const day = parseInt(match[1]);
+                                const monthStr = match[2].toLowerCase();
+                                const months: { [key: string]: number } = { jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5, jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11 };
+                                const month = months[monthStr];
+                                const currentYear = new Date().getFullYear();
+
+                                // Create date object (assume current year, if date is in past, maybe next year? BMS usually lists upcoming)
+                                const parsedDate = new Date(currentYear, month, day, 19, 0, 0); // Default 7 PM
+
+                                // Adjust if date is in the past (e.g. looking at Dec in Jan)
+                                if (parsedDate < new Date() && month < new Date().getMonth()) {
+                                    parsedDate.setFullYear(currentYear + 1);
+                                }
+                                eventDate = parsedDate;
+                            }
+                        }
+
                         return {
                             title: title,
                             description: `${languageMatch ? languageMatch + ' • ' : ''}${details.join(' ')}`, // Add language to description
@@ -144,7 +187,7 @@ export class BookMyShowScraper {
                             city: cityName,
                             venue: venue,
                             address: cityName,
-                            event_date: new Date().toISOString(), // Movies often imply "Now Showing"
+                            event_date: eventDate.toISOString(),
                             image_url: imageUrl,
                             price_min: priceMin,
                             price_max: priceMin,
