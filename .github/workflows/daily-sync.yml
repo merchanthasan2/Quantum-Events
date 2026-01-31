@@ -11,14 +11,26 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Trigger Vibe Data Sync
+        env:
+          SYNC_URL_SECRET: ${{ secrets.DEPLOYED_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |
-          echo "Triggering Sync..."
-          URL="${{ secrets.DEPLOYED_URL }}"
-          if [ -z "$URL" ]; then
-            echo "DEPLOYED_URL secret not found, using default."
-            URL="https://aajkascene.netlify.app"
+          echo "Preparing Sync Request..."
+          
+          # Determine Target URL
+          TARGET_URL="$SYNC_URL_SECRET"
+          
+          # Default to production if secret is missing or doesn't look like a URL
+          if [[ -z "$TARGET_URL" ]] || [[ "$TARGET_URL" != http* ]]; then
+            echo "⚠️  DEPLOYED_URL secret missing or invalid. Defaulting to production URL."
+            TARGET_URL="https://aajkascene.netlify.app"
           fi
           
-          curl -v -X GET "$URL/api/cron/sync" \
-          -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+          # Remove trailing slash if present
+          TARGET_URL="${TARGET_URL%/}"
+          
+          echo "🚀 Triggering Sync at: $TARGET_URL/api/cron/sync"
+          
+          curl -v -X GET "$TARGET_URL/api/cron/sync" \
+          -H "Authorization: Bearer $CRON_SECRET" \
           --fail
