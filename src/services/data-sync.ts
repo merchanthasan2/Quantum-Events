@@ -162,8 +162,8 @@ export class DataSyncService {
             .maybeSingle();
 
         const [regCheck, sourceCheck] = await Promise.all([
-            supabase.from('events').select('id').eq('registration_url', scraped.registration_url).maybeSingle(),
-            supabase.from('events').select('id').eq('source_id', scraped.source_id).maybeSingle()
+            supabase.from('events').select('id, image_url').eq('registration_url', scraped.registration_url).maybeSingle(),
+            supabase.from('events').select('id, image_url').eq('source_id', scraped.source_id).maybeSingle()
         ]);
 
         const existing = regCheck.data || sourceCheck.data || similar;
